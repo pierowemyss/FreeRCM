@@ -4,9 +4,10 @@ FreeRCM is a free, graphical-user-interfaced residue curve mapping tool that is 
 
 ## How to use:
 
-Download the project and run with Python (as shown below) then follow the steps enumerated below.
+Download the project and run with Python (shown below for MacOS/Linux) then follow the steps enumerated below.
 
 ```bash
+#For MacOS/Linux
 cd path/to/project/folder
 python3 freeRCM.py
 ```
@@ -63,7 +64,7 @@ During each step in warped time, $y_i$ is found via vapor-liquid equilibria rela
 <img src="https://github.com/user-attachments/assets/e8499168-d793-439f-af49-38e0e3130ce9" alt="firstExample" style="width:50%;">
 </p>
 
-NOTE: NRTL is used to find activity coefficients in this simulation, the form of which is as follows:
+NOTE: The NRTL activity coefficient model sometimes comes in different forms. The form used in this program is as follows:
 
 $$\ln{\gamma_i} = \frac{\sum_j x_j\tau_{ji}G_{ji}}{\sum_k x_kG_{ki}} + \sum_j \frac{x_jG_{ij}}{\sum_k x_kG_{{kj}}}\left(\tau_{ij} - \frac{\sum_m x_m\tau_{mj}G_{mj}}{\sum_k x_kG_{kj}}\right)$$
 
@@ -76,7 +77,7 @@ ADDITIONAL NOTE: The Extended Antoine equation used is as follows:
 
 $$\ln{P_i^{SAT}} = C_{1,i} + \frac{C_{2,i}}{T+C_{3,i}} + C_{4,i}T + C_{5,i}\ln{T} + C_{6,i}T^{C_{7,i}}$$
 
-Other methods (like regular Antoine and SRK) use their most common forms, so there should not be much ambiguity when inputting parameters. Please remember, as mentioned before, that all methods deal with temperature in units of degrees Celsius and pressure in units of bar.
+Other methods (like regular Antoine and SRK) use their most standard forms, so there should not be much ambiguity when inputting parameters. Please remember, as mentioned before, that all methods deal with temperature in units of degrees Celsius and pressure in units of bar.
 
 ## Features to be added in the future:
 
