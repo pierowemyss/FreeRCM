@@ -8,7 +8,7 @@ Download the project and run with Python (shown below for MacOS/Linux) then foll
 
 ```bash
 #For MacOS/Linux
-cd path/to/project/folder
+cd path/to/freeRCM_project
 python3 freeRCM.py
 ```
 
