@@ -10,7 +10,7 @@ import numpy as np
 from orgProps import orgProps
 from antoineCalc import antoineCalc
 from stripVLE import stripVLE
-from scipy.optimize import fsolve, root
+from scipy.optimize import root
 from dict2struct import dict2struct
 
 def RCM(comps,selected_comps,P,allProps,opts,x0n,genOpt):
@@ -65,7 +65,7 @@ def RCM(comps,selected_comps,P,allProps,opts,x0n,genOpt):
         if opts.antMethod == 1:
             condAntC = orgProps(1,comps,np.array([selected_comps[majComp]]),allProps)
             T0 = (condAntC.antoine[0][1]/(condAntC.antoine[0][0]-np.log10(P)) - condAntC.antoine[0][2])
-            T0 = fsolve(lambda T: antoineCalc(T,np.array([selected_comps[majComp]]),props,opts.antMethod)-P,T0)
+            T0 = root(lambda T: antoineCalc(T,np.array([selected_comps[majComp]]),props,opts.antMethod)-P,T0,method='lm')
             Y0 = np.append(x0, T0[0])
         else:
             try:
@@ -152,7 +152,7 @@ def RCM(comps,selected_comps,P,allProps,opts,x0n,genOpt):
             if opts.antMethod == 1:
                 condAntC = orgProps(1,comps,np.array([selected_comps[majComp]]),allProps)
                 T0 = (condAntC.antoine[0][1]/(condAntC.antoine[0][0]-np.log10(P)) - condAntC.antoine[0][2])
-                T0 = fsolve(lambda T: antoineCalc(T,np.array([selected_comps[majComp]]),props,opts.antMethod)-P,T0)
+                T0 = root(lambda T: antoineCalc(T,np.array([selected_comps[majComp]]),props,opts.antMethod)-P,T0,method='lm')
                 Y0 = np.append(x0, T0[0])
             else:
                 try:
