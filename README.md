@@ -103,7 +103,7 @@ If you need to recompile `RCM_solver.so`, follow these steps:
 
 - GNU Scientific Library
 - MINPACK
-  GSL can be installed with your package manager or [here](https://www.gnu.org/software/gsl/). MINPACK can be found [here](https://github.com/fortran-lang/minpack) under src/.
+- GSL can be installed with your package manager or [here](https://www.gnu.org/software/gsl/). MINPACK can be found [here](https://github.com/fortran-lang/minpack) under src/.
 
 2. Compile and link:
 
