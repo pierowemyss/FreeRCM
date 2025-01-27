@@ -87,7 +87,7 @@ Other methods (like regular Antoine and SRK) use their most standard forms, so t
 
 1. Automatic acentricity prediction for SRK using Pitzer correlation.
 2. Add useful information to "Help" buttons.
-3. Build standalone app (with Nuitka or something). I've already done this, but startup time is horrendous because of matplotlib and PySide6 (takes bout 15 secondes to load initialize on my system). If anyone knows of any way around this (maybe lazy loading matplotlib), please let me know.
+3. Build standalone app (with Nuitka or something). I've already done this, but startup time is horrendous because of matplotlib and PySide6 (takes about 15 seconds to initialize on my system). If anyone knows of any way around this (maybe lazy loading matplotlib), please let me know.
 4. Parameter auto-fill from databank?
 5. When adding/deleting components, the thermodynamic model parameters don't change accordingly (not too hard of a fix once I find the time, please keep parameters in a spreadsheet).
 6. Possibly add a feature to display phase separation regions.
