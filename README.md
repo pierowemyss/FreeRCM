@@ -28,7 +28,7 @@ The "Open Simulation" button will prompt a "\*.rcm" file to be selected. An exam
 
 ### 2. Set up or modify a simulation:
 
-Add components by clicking the "Add Components" button and delete them by selecting a component and clicking "Delete Component." Make sure three components are in the "Selected Components" box before continuing. Components can be added to or removed from here by selecting a component and clicking ">>" or "<<."
+Add components by clicking the "Add Component" button and delete them by selecting a component and clicking "Delete Component." Make sure three components are in the "Selected Components" box before continuing. Components can be added to or removed from here by selecting a component and clicking ">>" or "<<."
 
 <p align="center">
 <img width="798" alt="SimSetUp" src="https://github.com/user-attachments/assets/bd2dbf04-9efb-44ab-b188-7b4fd0517e48">
@@ -89,9 +89,8 @@ Other methods (like regular Antoine and SRK) use their most standard forms, so t
 2. Add useful information to "Help" buttons.
 3. Build standalone app (with Nuitka or something). I've already done this, but startup time is horrendous because of matplotlib and PySide6 (takes about 15 seconds to initialize on my system). If anyone knows of any way around this (maybe lazy loading matplotlib), please let me know.
 4. Parameter auto-fill from databank?
-5. When adding/deleting components, the thermodynamic model parameters don't change accordingly (not too hard of a fix once I find the time, please keep parameters in a spreadsheet).
-6. Possibly add a feature to display phase separation regions.
-7. Fix the way that windows are regenerated.
+5. Possibly add a feature to display phase separation regions.
+6. Fix the way that windows are regenerated.
 
 ## Additional Info
 

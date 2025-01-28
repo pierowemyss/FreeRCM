@@ -40,17 +40,17 @@ def RCM(comps, selected_comps, P, allProps, opts, x0n, genOpt):
         dxi = float(opts.dxi) * 1.0
     except TypeError:
         print("type err\n")
-        dxi = 0.05
+        dxi = 0.02
     except AttributeError:
         print("attr err\n")
-        dxi = 0.05
+        dxi = 0.02
 
     try:
         n_it = opts.n_it * 1
     except TypeError:
-        n_it = 100
+        n_it = 250
     except AttributeError:
-        n_it = 100
+        n_it = 250
 
     Ncomps = len(selected_comps)
     if opts.antMethod == 1:

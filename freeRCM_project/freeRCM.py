@@ -63,13 +63,14 @@ TcCel = np.array([])
 Pc = np.array([])
 omega = np.array([])
 
-lmopts = {"maxiter": 500, "ftol": 1e-12, "xtol": 1e-12}
+lmopts = {"maxiter": 1000, "ftol": 1e-12, "xtol": 1e-12}
 options = {
     "antMethod": 2,
     "activity": 3,
     "lines": 15,
     "linewidth": 1.2,
-    "n_it": 80,
+    "n_it": 250,
+    "dxi": 0.02,
     "lmopts": lmopts,
 }
 opts = dict2struct(options)
@@ -129,9 +130,13 @@ class GetStartedWindow(QMainWindow):
         Pc = np.array([])
         omega = np.array([])
 
-        self.hide()
+        current_pos = self.pos()
         self.new_simulation_window = NewSimulationWindow()
+        self.new_simulation_window.move(current_pos)
         self.new_simulation_window.show()
+        self.new_simulation_window.activateWindow()
+        self.new_simulation_window.raise_()
+        self.hide()
 
     def open_simulation(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -156,9 +161,13 @@ class GetStartedWindow(QMainWindow):
             antoine_params = data["antoine_params"]
             PLXANT_params = data["PLXANT_params"]
             #             print(f"Loaded variables: P = {P}, comps = {comps}, ..., PLXANT_params = {PLXANT_params}")
-            self.hide()
+            current_pos = self.pos()
             self.new_simulation_window = NewSimulationWindow()
+            self.new_simulation_window.move(current_pos)
             self.new_simulation_window.show()
+            self.new_simulation_window.activateWindow()
+            self.new_simulation_window.raise_()
+            self.hide()
 
 
 class NewSimulationWindow(QMainWindow):
@@ -178,11 +187,11 @@ class NewSimulationWindow(QMainWindow):
         global opts
         layout = QGridLayout(self.central_widget)
 
-        add_components_button = QPushButton("Add Components", self)
+        add_components_button = QPushButton("Add Component", self)
         add_components_button.clicked.connect(self.add_components)
         layout.addWidget(add_components_button, 0, 0)
 
-        delete_components_button = QPushButton("Delete Components", self)
+        delete_components_button = QPushButton("Delete Component", self)
         delete_components_button.clicked.connect(self.delete_components)
         layout.addWidget(delete_components_button, 0, 1)
 
@@ -287,24 +296,57 @@ class NewSimulationWindow(QMainWindow):
 
         self.central_widget.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
-    # Need to fix the way that this affects property matrices
     def add_components(self):
         new_comp, ok = QInputDialog.getText(
             self, "Add Component", "Enter component name:"
         )
         if ok and new_comp:
-            global comps
+            global comps, antoine_params, PLXANT_params, NRTL_aij, NRTL_bij, NRTL_cij, TcCel, Pc, omega
             comps = np.append(comps, new_comp)
             self.update_components_list()
+            if len(comps) == 1:
+                antoine_params = np.zeros((1, 3))
+                PLXANT_params = np.zeros((1, 7))
+                NRTL_aij = np.zeros((1, 1))
+                NRTL_bij = np.zeros((1, 1))
+                NRTL_cij = np.zeros((1, 1))
+                TcCel = np.append(TcCel, 0)
+                Pc = np.append(Pc, 0)
+                omega = np.append(omega, 0)
+            else:
+                antoine_params = np.vstack((antoine_params, np.zeros((1, 3))))
+                PLXANT_params = np.vstack((PLXANT_params, np.zeros((1, 7))))
+                NRTL_aij = np.vstack((NRTL_aij, np.zeros((1, len(comps) - 1))))
+                NRTL_aij = np.hstack((NRTL_aij, np.zeros((len(comps), 1))))
+                NRTL_bij = np.vstack((NRTL_bij, np.zeros((1, len(comps) - 1))))
+                NRTL_bij = np.hstack((NRTL_bij, np.zeros((len(comps), 1))))
+                NRTL_cij = np.vstack((NRTL_cij, np.zeros((1, len(comps) - 1))))
+                NRTL_cij = np.hstack((NRTL_cij, np.zeros((len(comps), 1))))
+                TcCel = np.append(TcCel, 0)
+                Pc = np.append(Pc, 0)
+                omega = np.append(omega, 0)
+            self.save_params()
 
     def delete_components(self):
         selected_items = self.components_list.selectedItems()
         if selected_items:
             selected_item = selected_items[0]
             selected_index = self.components_list.row(selected_item)
-            global comps
+            global comps, antoine_params, PLXANT_params, NRTL_aij, NRTL_bij, NRTL_cij, TcCel, Pc, omega
             comps = np.delete(comps, selected_index)
             self.update_components_list()
+            antoine_params = np.delete(antoine_params, selected_index, 0)
+            PLXANT_params = np.delete(PLXANT_params, selected_index, 0)
+            NRTL_aij = np.delete(NRTL_aij, selected_index, 0)
+            NRTL_aij = np.delete(NRTL_aij, selected_index, 1)
+            NRTL_bij = np.delete(NRTL_bij, selected_index, 0)
+            NRTL_bij = np.delete(NRTL_bij, selected_index, 1)
+            NRTL_cij = np.delete(NRTL_cij, selected_index, 0)
+            NRTL_cij = np.delete(NRTL_cij, selected_index, 1)
+            TcCel = np.delete(TcCel, selected_index)
+            Pc = np.delete(Pc, selected_index)
+            omega = np.delete(omega, selected_index)
+            self.save_params()
 
     def update_components_list(self):
         self.components_list.clear()
@@ -343,8 +385,21 @@ class NewSimulationWindow(QMainWindow):
                 self, "Invalid Input", "Please enter a valid number for pressure."
             )
 
+    def save_params(self):
+        global comps, antoine_params, PLXANT_params, NRTL_aij, NRTL_bij, NRTL_cij, TcCel, Pc, omega, allProps
+        allProps.antoine = antoine_params
+        allProps.PLXANT = PLXANT_params
+        allProps.NRTL_aij = NRTL_aij
+        allProps.NRTL_bij = NRTL_bij
+        allProps.NRTL_cij = NRTL_cij
+        allProps.TcCel = TcCel
+        allProps.Pc = Pc
+        allProps.omega = omega
+
     def input_parameters(self):
         self.input_params_window = InputParamsWindow()
+        self.input_params_window.setWindowModality(Qt.ApplicationModal)
+        self.input_params_window.move(self.pos().x() + 50, self.pos().y() + 50)
         self.input_params_window.show()
 
     def update_vapor_pressure_method(self):
@@ -369,9 +424,13 @@ class NewSimulationWindow(QMainWindow):
         QMessageBox.information(self, "Help", "This is a simulation tool.")
 
     def go_back(self):
-        self.hide()
+        current_pos = self.pos()
         self.get_started_window = GetStartedWindow()
+        self.get_started_window.move(current_pos)
         self.get_started_window.show()
+        self.get_started_window.activateWindow()
+        self.get_started_window.raise_()
+        self.hide()
 
     def next(self):
         #         self.hide()
@@ -382,18 +441,26 @@ class NewSimulationWindow(QMainWindow):
         if len(selected_comps) == 3:
             if opts.antMethod == 1 and antoine_params.size:
                 if opts.activity == 1:
-                    self.hide()
+                    current_pos = self.pos()
                     self.make_sim_window = MakeSimWindow()
+                    self.make_sim_window.move(current_pos)
                     self.make_sim_window.show()
+                    self.make_sim_window.activateWindow()
+                    self.make_sim_window.raise_()
+                    self.hide()
                 elif (
                     opts.activity == 2
                     and NRTL_aij.size
                     and NRTL_bij.size
                     and NRTL_cij.size
                 ):
-                    self.hide()
+                    current_pos = self.pos()
                     self.make_sim_window = MakeSimWindow()
+                    self.make_sim_window.move(current_pos)
                     self.make_sim_window.show()
+                    self.make_sim_window.activateWindow()
+                    self.make_sim_window.raise_()
+                    self.hide()
                 elif (
                     opts.activity == 3
                     and NRTL_aij.size
@@ -403,9 +470,13 @@ class NewSimulationWindow(QMainWindow):
                     and Pc.size
                     and omega.size
                 ):
-                    self.hide()
+                    current_pos = self.pos()
                     self.make_sim_window = MakeSimWindow()
+                    self.make_sim_window.move(current_pos)
                     self.make_sim_window.show()
+                    self.make_sim_window.activateWindow()
+                    self.make_sim_window.raise_()
+                    self.hide()
                 else:
                     QMessageBox.information(
                         self,
@@ -414,18 +485,26 @@ class NewSimulationWindow(QMainWindow):
                     )
             elif opts.antMethod == 2 and PLXANT_params.size:
                 if opts.activity == 1:
-                    self.hide()
+                    current_pos = self.pos()
                     self.make_sim_window = MakeSimWindow()
+                    self.make_sim_window.move(current_pos)
                     self.make_sim_window.show()
+                    self.make_sim_window.activateWindow()
+                    self.make_sim_window.raise_()
+                    self.hide()
                 elif (
                     opts.activity == 2
                     and NRTL_aij.size
                     and NRTL_bij.size
                     and NRTL_cij.size
                 ):
-                    self.hide()
+                    current_pos = self.pos()
                     self.make_sim_window = MakeSimWindow()
+                    self.make_sim_window.move(current_pos)
                     self.make_sim_window.show()
+                    self.make_sim_window.activateWindow()
+                    self.make_sim_window.raise_()
+                    self.hide()
                 elif (
                     opts.activity == 3
                     and NRTL_aij.size
@@ -435,9 +514,13 @@ class NewSimulationWindow(QMainWindow):
                     and Pc.size
                     and omega.size
                 ):
-                    self.hide()
+                    current_pos = self.pos()
                     self.make_sim_window = MakeSimWindow()
+                    self.make_sim_window.move(current_pos)
                     self.make_sim_window.show()
+                    self.make_sim_window.activateWindow()
+                    self.make_sim_window.raise_()
+                    self.hide()
                 else:
                     QMessageBox.information(
                         self,
@@ -513,8 +596,8 @@ class MakeSimWindow(QMainWindow):
     def plot_figure(self):
         global comps, selected_comps, P, allProps, opts
         x0n = np.array([])
-        x = RCM(comps, selected_comps, P, allProps, opts, x0n, 1).x
-        fig, ax = RCMplot(x, self.selected_comps, self.opts)
+        self.x = RCM(comps, selected_comps, P, allProps, opts, x0n, 1).x
+        fig, ax = RCMplot(self.x, self.selected_comps, self.opts)
 
         if self.canvas:
             self.canvas.deleteLater()
@@ -534,8 +617,8 @@ class MakeSimWindow(QMainWindow):
         self.canvas.mpl_connect("button_press_event", self.click_plot)
 
     def clear_figure(self):
-        x = np.zeros([1, 3, 1])
-        fig, ax = RCMplot(x, self.selected_comps, self.opts)
+        self.x = np.zeros([2 * self.opts.n_it, 3, 1])
+        fig, ax = RCMplot(self.x, self.selected_comps, self.opts)
 
         if self.canvas:
             self.canvas.deleteLater()
@@ -560,8 +643,10 @@ class MakeSimWindow(QMainWindow):
             x_click = event.xdata
             y_click = event.ydata
             x0n = np.array([x_click, y_click, 1 - x_click - y_click])
-            x = RCM(comps, selected_comps, P, allProps, opts, x0n, 2).x
-            fig, ax = RCMplot(x, self.selected_comps, self.opts)
+            self.x = np.append(
+                self.x, RCM(comps, selected_comps, P, allProps, opts, x0n, 2).x, 2
+            )
+            fig, ax = RCMplot(self.x, self.selected_comps, self.opts)
 
             if self.canvas:
                 self.canvas.deleteLater()
@@ -610,20 +695,30 @@ class MakeSimWindow(QMainWindow):
 
     def adjust_parameters(self):
         self.input_params_window = InputParamsWindow()
+        self.input_params_window.setWindowModality(Qt.ApplicationModal)
+        self.input_params_window.move(self.pos().x() + 50, self.pos().y() + 50)
         self.input_params_window.show()
 
     def plot_options(self):
         self.plot_options_window = PlotOptsWindow()
+        self.plot_options_window.setWindowModality(Qt.ApplicationModal)
+        self.plot_options_window.move(self.pos().x() + 50, self.pos().y() + 50)
         self.plot_options_window.show()
 
     def solver_options(self):
         self.solver_options_window = SolverOptsWindow()
+        self.solver_options_window.setWindowModality(Qt.ApplicationModal)
+        self.solver_options_window.move(self.pos().x() + 50, self.pos().y() + 50)
         self.solver_options_window.show()
 
     def go_back(self):
-        self.hide()
+        current_pos = self.pos()
         self.new_simulation_window = NewSimulationWindow()
+        self.new_simulation_window.move(current_pos)
         self.new_simulation_window.show()
+        self.new_simulation_window.activateWindow()
+        self.new_simulation_window.raise_()
+        self.hide()
 
     def save_variables(self):
         file_path, _ = QFileDialog.getSaveFileName(
@@ -689,26 +784,38 @@ class InputParamsWindow(QMainWindow):
 
     def antoine_params_btn(self):
         self.antoine_params_window = antoine_params_input()
+        self.antoine_params_window.setWindowModality(Qt.ApplicationModal)
+        self.antoine_params_window.move(self.pos().x() + 50, self.pos().y() + 50)
         self.antoine_params_window.show()
 
     def PLXANT_params_btn(self):
         self.PLXANT_params_window = PLXANT_params_input()
+        self.PLXANT_params_window.setWindowModality(Qt.ApplicationModal)
+        self.PLXANT_params_window.move(self.pos().x() + 50, self.pos().y() + 50)
         self.PLXANT_params_window.show()
 
     def NRTL_aij_btn(self):
         self.NRTL_aij_window = NRTL_aij_input()
+        self.NRTL_aij_window.setWindowModality(Qt.ApplicationModal)
+        self.NRTL_aij_window.move(self.pos().x() + 50, self.pos().y() + 50)
         self.NRTL_aij_window.show()
 
     def NRTL_bij_btn(self):
         self.NRTL_bij_window = NRTL_bij_input()
+        self.NRTL_bij_window.setWindowModality(Qt.ApplicationModal)
+        self.NRTL_bij_window.move(self.pos().x() + 50, self.pos().y() + 50)
         self.NRTL_bij_window.show()
 
     def NRTL_cij_btn(self):
         self.NRTL_cij_window = NRTL_cij_input()
+        self.NRTL_cij_window.setWindowModality(Qt.ApplicationModal)
+        self.NRTL_cij_window.move(self.pos().x() + 50, self.pos().y() + 50)
         self.NRTL_cij_window.show()
 
     def SRK_btn(self):
         self.SRK_window = SRK_input()
+        self.SRK_window.setWindowModality(Qt.ApplicationModal)
+        self.SRK_window.move(self.pos().x() + 50, self.pos().y() + 50)
         self.SRK_window.show()
 
 
@@ -1100,7 +1207,7 @@ class SRK_input(QWidget):
         self.create_widgets()
 
     def create_widgets(self):
-        self.setWindowTitle("NRTL cij Parameters")
+        self.setWindowTitle("SRK Parameters")
 
         self.table = CustomTableWidget(len(self.comps), len(self.crit_params_bank))
         self.table.setHorizontalHeaderLabels(
