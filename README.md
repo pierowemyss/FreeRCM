@@ -2,25 +2,37 @@
 
 FreeRCM is a free, graphical-user-interfaced residue curve mapping tool that is helpful for designing distillation columns, especially for entrainer screening for extractive distillation columns. This specific program also allows for simulations to be saved as "\*.rcm" files and opened later.
 
+[!IMPORTANT]
+Below is a quick guide on getting the program running and a bit of info on the methodology behind residue curve mapping. For more details on project structure, features, requirements, and more, see the README at `freeRCM/README.md`.
+
 ## How to use:
 
-Once you are in the cloned repository, use the following command to ensure that you have the correct Python requirements:
+Once you are in the freeRCM/ directory of the cloned repository, use the following command to ensure that you have the correct Python requirements:
 
 ```bash
-pip install -r pyReqs.txt
+pip install -r build/requirements/pyReqs.txt
 ```
 
-Then, just execute with Python:
+With an Apple Silicon machine, the solver binaries come pre-compiled, so just execute with Python:
 
 ```bash
-python freeRCM.py
+python launch.py
 ```
 
-NOTE: I've been experimenting with building a standalone app using Nuitka; however, I'm still resolving some startup time issues with matplotlib and PySide6 so this is the best way for now.
+If your system has different architecture, you will have to compile the solver binaries:
+
+```bash
+cd build
+make
+cd ..
+```
+
+[!NOTE]
+I've been experimenting with building a standalone app using Nuitka; however, I'm still resolving some startup time issues with matplotlib and PySide6 so this is the best way for now.
 
 ### 1. Create a new or open an existing simulation:
 
-The "Open Simulation" button will prompt a "\*.rcm" file to be selected. An example simulation, "example.rcm," has been provided for you to play around with the program.
+The "Open Simulation" button will prompt a "\*.rcm" file to be selected. Example simulations in `docs/examples/` has been provided for you to play around with the program.
 
 <p align="center">
 <img width="827" alt="StartScreen" src="https://github.com/user-attachments/assets/487fb408-4c9a-444b-b062-a93d824a7744">
@@ -36,7 +48,8 @@ Add components by clicking the "Add Component" button and delete them by selecti
 
 Additionally, you must also ensure that for your selected thermodynamic model, all parameters have been input. Click on "Input Parameters" and copy/paste parameters from Excel (or enter manually) to do this.
 
-IMPORTANT: All methods deal with temperature in units of degrees Celsius and pressure in units of bar. Also, it is highly recommended to use the extended Antoine equation for calculating saturation pressure (as opposed to the regular Antoine equation) since the regular Antoine equation option has not been bug-tested.
+[!IMPORTANT]
+All methods deal with temperature in units of degrees Celsius and pressure in units of bar. Also, it is highly recommended to use the extended Antoine equation for calculating saturation pressure (as opposed to the regular Antoine equation) since the regular Antoine equation option has not been bug-tested.
 
 <p align="center">
 <img width="1103" alt="InpParams" src="https://github.com/user-attachments/assets/941ed499-2ac9-4f01-ac6d-6fcfaea4d149">
@@ -50,7 +63,8 @@ Either auto-generate curves or click on the plot to generate a curve. Click on "
 <img width="1008" alt="Screenshot 2024-08-19 at 11 03 56 PM" src="https://github.com/user-attachments/assets/75fc6f0c-5b51-42c8-8171-c855e66a066c">
 </p>
 
-If any lines don't come out smooth or don't solve correctly, decrease the step size, _dxi_, which is available under **Solver Options**. Don't worry about performance, I rewrote the solver in pure C and Fortran (because SciPy was slow and took awhile to load, also to become better at the two languanges), so it can basically run on a potato.
+[!TIP]
+If any lines don't come out smooth or don't solve correctly, decrease the step size, _dxi_, which is available under `Solver Options`. Don't worry about performance, I rewrote the solver in pure C and Fortran (because SciPy was slow and took awhile to load, also to become better at the two languages), so it can basically run on a potato.
 
 ## How it works:
 
@@ -68,7 +82,8 @@ During each step in warped time, $y_i$ is found via vapor-liquid equilibria rela
 <img src="https://github.com/user-attachments/assets/e8499168-d793-439f-af49-38e0e3130ce9" alt="firstExample" style="width:50%;">
 </p>
 
-NOTE: The NRTL activity coefficient model sometimes comes in different forms. The form used in this program is as follows:
+[!NOTE]
+The NRTL activity coefficient model sometimes comes in different forms. The form used in this program is as follows:
 
 $$\ln{\gamma_i} = \frac{\sum_j x_j\tau_{ji}G_{ji}}{\sum_k x_kG_{ki}} + \sum_j \frac{x_jG_{ij}}{\sum_k x_kG_{{kj}}}\left(\tau_{ij} - \frac{\sum_m x_m\tau_{mj}G_{mj}}{\sum_k x_kG_{kj}}\right)$$
 
@@ -77,7 +92,8 @@ $G_{ij} = \text{exp}(-c_{ij}\tau_{ij})$
 and
 $\tau_{ij} = a_{ij} + b_{ij}/T$
 
-ADDITIONAL NOTE: The Extended Antoine equation used is as follows:
+[!NOTE]
+The Extended Antoine equation used is as follows:
 
 $$\ln{P_i^{SAT}} = C_{1,i} + \frac{C_{2,i}}{T+C_{3,i}} + C_{4,i}T + C_{5,i}\ln{T} + C_{6,i}T^{C_{7,i}}$$
 
@@ -96,7 +112,7 @@ Other methods (like regular Antoine and SRK) use their most standard forms, so t
 
 If you need a fast way to calculate NRTL activity coefficients, SRK fugacity coefficients, or SRK compressibilty factors in your Python projects, nifco.f90 can readily be compiled with f2py (now comes bundled with numpy) to become Python-callable.
 
-If you need to recompile `RCM_solver.so`, follow these steps:
+If you need to recompile `RCM_solver.so` and something is wrong with the Makefile, follow these steps:
 
 1. Ensure you have the correct libraries installed, including:
 
@@ -112,9 +128,11 @@ gfortran -fPIC -c nifco.f90 nifco.o -O3 -mmacosx-version-min=14.4 -I/path/to/lib
 gcc -shared -o RCM_solver.so RCM_solv.o nifco.o -L/usr/local/lib -L/path/to/gsl/2.8/lib -L/path/to/gcc/current/ -L/path/to/libminpack.so -lgsl -lgslcblas -lgfortran -lminpack
 ```
 
+[!NOTE]
 Note that (obviously) the library paths to files should be the paths to the directories in which they reside. Change the directories accordingly. Also, minpack_module.mod is compiled from the module provided with MINPACK.
 
 ## References:
 
 - Doherty, M. F., & Malone, M. F. (2001). Conceptual design of Distillation Systems. Boston: McGraw-Hill.
 - [MINPACK](https://github.com/fortran-lang/minpack/tree/main)
+- [GNU Scientific Library](https://www.gnu.org/software/gsl/)
