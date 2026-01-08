@@ -18,6 +18,9 @@ TO DO:
 import sys
 import os
 import numpy as np
+import os
+os.environ['QT_API'] = 'pyside6'
+
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -42,11 +45,16 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QPixmap
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
 import pickle
-from dict2struct import dict2struct
-from RCM_wrap import RCM
-from RCMplot import RCMplot
+# Import modules directly
+import data_structures
+import solver
+import plot_widget as plot_widget_mod
+
+dict2struct = data_structures.dict2struct
+RCM = solver.RCM
+RCMplot = plot_widget_mod.RCMplot
 
 
 global P, comps, selected_comps, allProps, lmopts, opts, NRTL_aij, NRTL_bij, NRTL_cij, TcCel, Pc, omega, antoine_params, PLXANT_params
@@ -96,7 +104,8 @@ class GetStartedWindow(QMainWindow):
             try:
                 base_path = sys._MEIPASS
             except Exception:
-                base_path = os.path.abspath(".")
+                # Look in assets directory relative to project root
+                base_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "assets")
 
             return os.path.join(base_path, relative_path)
 
@@ -144,22 +153,48 @@ class GetStartedWindow(QMainWindow):
         )
         if file_path:
             global P, comps, selected_comps, allProps, lmopts, opts, NRTL_aij, NRTL_bij, NRTL_cij, TcCel, Pc, omega, antoine_params, PLXANT_params
-            with open(file_path, "rb") as file:
-                data = pickle.load(file)
+
+            # Custom unpickler for backward compatibility
+            class RenamingUnpickler(pickle.Unpickler):
+                def find_class(self, module, name):
+                    # Handle old module name for dict2struct
+                    if module == "dict2struct" and name == "dict2struct":
+                        return dict2struct
+                    # Handle any other old module references that might exist
+                    if module == "__main__" and name in ["dict2struct"]:
+                        return dict2struct
+                    return super().find_class(module, name)
+
+            try:
+                with open(file_path, "rb") as file:
+                    data = RenamingUnpickler(file).load()
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Error Loading File",
+                    f"Failed to load simulation file: {str(e)}\n\n"
+                    "This may be due to an incompatible file format from an older version."
+                )
+                return
+
             P = data["P"]
-            comps = data["comps"]
-            selected_comps = data["selected_comps"]
-            allProps = data["allProps"]
+            comps = np.array(data["comps"])
+            selected_comps = np.array(data["selected_comps"])
+            # Convert allProps to dict2struct and ensure nested arrays are numpy arrays
+            allProps_dict = data["allProps"].copy()
+            for key, value in allProps_dict.items():
+                if isinstance(value, list):
+                    allProps_dict[key] = np.array(value)
+            allProps = dict2struct(allProps_dict)
             lmopts = data["lmopts"]
             opts = data["opts"]
-            NRTL_aij = data["NRTL_aij"]
-            NRTL_bij = data["NRTL_bij"]
-            NRTL_cij = data["NRTL_cij"]
-            TcCel = data["TcCel"]
-            Pc = data["Pc"]
-            omega = data["omega"]
-            antoine_params = data["antoine_params"]
-            PLXANT_params = data["PLXANT_params"]
+            NRTL_aij = np.array(data["NRTL_aij"])
+            NRTL_bij = np.array(data["NRTL_bij"])
+            NRTL_cij = np.array(data["NRTL_cij"])
+            TcCel = np.array(data["TcCel"])
+            Pc = np.array(data["Pc"])
+            omega = np.array(data["omega"])
+            antoine_params = np.array(data["antoine_params"])
+            PLXANT_params = np.array(data["PLXANT_params"])
             #             print(f"Loaded variables: P = {P}, comps = {comps}, ..., PLXANT_params = {PLXANT_params}")
             current_pos = self.pos()
             self.new_simulation_window = NewSimulationWindow()
@@ -1201,7 +1236,7 @@ class SRK_input(QWidget):
         global comps
         super().__init__()
         self.setGeometry(100, 100, 600, 400)
-        self.crit_params_bank = ["$T_C$", "$P_C$", "$\\omega$"]
+        self.crit_params_bank = ["Tᶜ", "Pᶜ", "ω"]
         self.comps = comps
         # self.crit_params = crit_params
         self.create_widgets()
@@ -1472,8 +1507,12 @@ class ClearFocusLineEdit(QLineEdit):
         self.clearFocus()
 
 
-if __name__ == "__main__":
+def main():
+    """Main entry point for FreeRCM application."""
     app = QApplication([])
     window = GetStartedWindow()
     window.show()
     app.exec()
+
+if __name__ == "__main__":
+    main()

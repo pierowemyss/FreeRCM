@@ -11,7 +11,9 @@ function props = fetchProps(params2fetch,comps)
 """
 
 import numpy as np
-from dict2struct import dict2struct
+import data_structures
+
+dict2struct = data_structures.dict2struct
 
 def orgProps(params2fetch,comps,selected_comps,allProps):
 

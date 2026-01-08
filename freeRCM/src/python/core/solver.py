@@ -1,7 +1,11 @@
 import ctypes
+import os
 import numpy as np
-from orgProps import orgProps
-from dict2struct import dict2struct
+import thermodynamics
+import data_structures
+
+orgProps = thermodynamics.orgProps
+dict2struct = data_structures.dict2struct
 
 
 class Params(ctypes.Structure):
@@ -71,7 +75,24 @@ def RCM(comps, selected_comps, P, allProps, opts, x0n, genOpt):
         for key in props3:
             props[key] = props3[key]
 
-    lib = ctypes.CDLL("./RCM_solver.so")
+    # Load native libraries with proper dependency resolution
+    lib_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "lib")
+
+    # Set library search path for macOS/Linux
+    if os.name == 'posix':
+        current_ld_path = os.environ.get('LD_LIBRARY_PATH', '')
+        os.environ['LD_LIBRARY_PATH'] = f"{lib_dir}:{current_ld_path}"
+    elif os.name == 'nt':
+        current_path = os.environ.get('PATH', '')
+        os.environ['PATH'] = f"{lib_dir};{current_path}"
+
+    # Load dependencies first, then main library
+    minpack_path = os.path.join(lib_dir, "libminpack.so")
+    solver_path = os.path.join(lib_dir, "RCM_solver.so")
+
+    # Load in dependency order
+    ctypes.CDLL(minpack_path)
+    lib = ctypes.CDLL(solver_path)
 
     if genOpt == 2:
         Nlines = 1
