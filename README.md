@@ -3,7 +3,7 @@
 FreeRCM is a free, graphical-user-interfaced residue curve mapping tool that is helpful for designing distillation columns, especially for entrainer screening for extractive distillation columns. This specific program also allows for simulations to be saved as "\*.rcm" files and opened later.
 
 > [!IMPORTANT]
-> Below is a quick guide on getting the program running, a bit of info on the methodology behind residue curve mapping, and (important!) info on what units of measure and coefficients are used in the models. For more details on project structure, features, requirements, and more, see the README at `freeRCM/README.md`.
+> Below is a quick guide on getting the program running, a bit of info on the methodology behind residue curve mapping, and (important!!) info on what units of measure and coefficients are used in the models. For more details on project structure, features, requirements, and more, see the README at `freeRCM/README.md`.
 
 ## How to use:
 
@@ -49,7 +49,7 @@ Add components by clicking the "Add Component" button and delete them by selecti
 Additionally, you must also ensure that for your selected thermodynamic model, all parameters have been input. Click on "Input Parameters" and copy/paste parameters from Excel (or enter manually) to do this.
 
 > [!IMPORTANT]
-> All methods deal with temperature in units of degrees Celsius and pressure in units of bar. Also, it is highly recommended to use the extended Antoine equation for calculating saturation pressure (as opposed to the regular Antoine equation) since the regular Antoine equation option has not been bug-tested.
+> All methods deal with temperature in units of Kelvin and pressure in units of bar. Also, it is **HIGHLY** recommended to use the extended Antoine equation (PLXANT) for calculating saturation pressure (as opposed to the regular Antoine equation) since the regular Antoine equation option often leads to bugs. I hypothesize that this is due to the fact that the extended Antoine equation is better at dealing with wider temperature ranges (RCMs keep pressure constant, temperature varies) and is overall more accurate, which leads to superior numerical stability when solving VLE equations.
 
 <p align="center">
 <img width="1103" alt="InpParams" src="https://github.com/user-attachments/assets/941ed499-2ac9-4f01-ac6d-6fcfaea4d149">
@@ -97,7 +97,8 @@ $\tau_{ij} = a_{ij} + b_{ij}/T$
 
 $$\ln{P_i^{SAT}} = C_{1,i} + \frac{C_{2,i}}{T+C_{3,i}} + C_{4,i}T + C_{5,i}\ln{T} + C_{6,i}T^{C_{7,i}}$$
 
-Other methods (like regular Antoine and SRK) use their most standard forms, so there should not be much ambiguity when inputting parameters. Please remember, as mentioned before, that all methods deal with temperature in units of degrees Celsius and pressure in units of bar.
+> [!IMPORTANT]
+> Other methods (like regular Antoine and SRK) use their most standard forms, so there should not be much ambiguity when inputting parameters. Please remember, as mentioned before, that all methods deal with temperature in units of Kelvin and pressure in units of bar.
 
 ## Features to be added/bugs to be fixed in the future:
 
